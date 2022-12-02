@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="jp">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mycalil</title>
+    <style>
+        #view{
+            padding: 10px;
+            border: 4px solid #000000;
+            position: absolute;
+            top:78px;
+            left:10px;
+            width: 400px;
+            background-color: aliceblue;
+            height:500px;
+            overflow: auto;
+        }
+        img{
+            width:50px;
+        }
+        #view>div{
+            border-bottom: 1px dotted #3838ab;
+            font-size:medium;
+        }
+        .bold{
+            font-weight: bold;
+        }
+        h2{
+            font-size:x-large;
+            color:#f1071e;
+        }
+        #myMap{
+            width:1200px;
+            height:660px;
+            margin: auto;
+        }
+        td{
+            border-bottom: 1px solid #ccc;
+            border-left: 1px solid #ccc;
+            width:400px;
+            height:auto;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>
+            <span id="geocode"></span>  My カーリル！～近所図書館探し～
+        </h1>
+        <div id="myMap"></div>
+        <div id="view"></div>
+    </div>
+    <!-- <p>カーリルでさがす</p> -->
+    <form target="_blank" action="https://calil.jp/searchw" method="get" class="calil_form_side">
+        <input name="q" type="text" size="25" value="" class="calil_query_side" placeholder="図書館で借りる(カーリルサイト)">
+        <input type="submit" value="借りる？" class="calil_submit">
+    </form>
+    <!-- googleBooks検索 -->
+    <div>
+        <input type="text" id="key" size="25" placeholder="Google ブックスで調べる">
+        <button id="send">検索</button>
+    </div>
+
+    <!-- 図書館貸出状況検索 -->
+    <div>
+        <input type="text" id="key_2" size="25" placeholder="図書館で借りる">
+        <button id="send_2">確認</button>
+    </div>
+
+    <div>
+        <table id="list">
+            <tr>
+                <td>書籍名</td>
+                <td>著者</td>
+                <td>出版社</td>
+                <td>画像</td>
+            </tr>
+        </table>
+    </div>
+
+    <div>
+        <table id="status">
+            <tr>
+                <td>施設名</td>
+                <td>蔵書の有無</td>
+                <td>貸出状況</td>
+                <td>画像</td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- <script src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=[  *** Your BingMapsAPI key. *** ]' async defer></script> -->
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+<script src="js/BmapQuery.js"></script>
+<script>
+    $("#view").hide();
+    //＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+    //MAP表示処理
+    //＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+    const key = "c3cfb5e8deaa4ad9f4b9600628af4c38" ;//***calilのkey***
+    let lat     = "";
+    let lon     = "";
+    // let geocode = "";
+    
+    function GetMap(){
+        const map = new Bmap("#myMap");
+        map.geolocation(function(data) {
+            //location
+            const lat = data.coords.latitude;
+            const lon = data.coords.longitude;
+            //Map
+            map.startMap(lat, lon, "load", 14);
+            
+            //pin
+            map.pinIcon(lat, lon, "img/poi_custom.png", 1.0, 12.5, 40);
+            // map.pin(lat,lon,"#ff0000");
+            //住所を取得
+            // const location   = map.setLocation(lat,lon);
+            // map.reverseGeocode(location, function(data){
+            //     // console.log(data);
+            //     // $("#geocode").html(data);
+            // });
+            //------------------------------------------------------------------------
+            //.Circle Add
+            //  circleSet( Meter, style={pinColor,fillColor,strokeWidth} );
+            //------------------------------------------------------------------------
+            //Blue
+            const style1 = {
+                pinColor:"#0000ff",
+                fillColor:"rgba(0,0,100,0.2)",
+                strokeWidth:1
+            };
+            map.circle(1000, style1); //1000m=1km
+            map.circle(2000, style1); //2000m=2Km
+            map.circle(3000, style1); //3000m=3km
+
+
+            const url_0 = 'https://api.calil.jp/library?callback=?&appkey='+key+'&geocode='+lon+','+lat+'&limit=6&format=json';
+            // console.log(url_0);
+
+            // $.getJSON(
+            //     'https://api.calil.jp/library?callback=?&appkey='+key+'&geocode='+lon+','+lat+'&limit=8&format=json',
+            //     function(data){
+            //         console.dir(data);
+            //     });
+            $.ajax({
+                url:url_0,
+                type:'get',
+                cache:false,
+                dataType:'json'
+            }).done(function(data){
+                    console.log(data);
+                    const br   = "<br>";
+                    let html=""; 
+                    for(let i=0; i<data.length; i++){
+                        html += `
+                            <div>
+                                <div>名称：${data[i].formal}</div>
+                                <div>住所：${data[i].address}</div>
+                                <div>電話：${data[i].tel}</div>
+                                <div>URL:${data[i].url_pc}</div>
+                                <div><br></div>
+                            </div>
+                        `;
+                        // 取得した位置データを配列に変換
+                        let geocode = data[i].geocode.split(',',2)
+                        let lat = geocode[1];
+                        let lon = geocode[0];
+                        let dis = data[i].distance.toPrecision(2)+"km";//枠数を指定して文字列に変換
+                        // console.log(data[i].url_pc);
+                        //pin
+                        // let pin = map.pin(lat,lon,"#ff0000","click");
+                        let pin = map.pinText(lat,lon,data[i].formal, dis,"click");                
+                        // map.infobox(lat, lon, data[i].formal, dis);
+                    
+                        map.onPin(pin, "click", function(){
+                            // alert("Pushpin-Event!!");
+
+                            const descript = '<div style="width:200px;color:red;">description</div>';
+                            const actions =
+                                [
+                                    //1.action
+                                    {
+                                        label: 'ホームページ',
+                                        eventHandler: function () { //function
+                                            // alert('Click1');
+                                            window.open(data[i].url_pc,"_blank");
+                                        }
+                                    },
+                                    //2.action
+                                    // {
+                                    //     label: 'Click2',
+                                    //     eventHandler: function () { //function
+                                    //         alert('Click2');
+                                    //     }
+                                    // }
+                                ];
+                            //Create Event to Infobox
+                            map.onInfobox(lat,lon, data[i].address, data[i].tel, actions);
+                                    });
+                                }
+                    
+                    //作成したHTML埋め込む
+                    $("#view").append(html);
+
+
+
+
+
+
+
+            });
+
+            
+
+
+            
+        });
+
+
+
+    };
+
+
+
+
+
+//GoogleBooks検索    
+    //検索ボタンをクリックしたら
+    $("#send").on("click",function(){
+        const url_2 = "https://www.googleapis.com/books/v1/volumes?q=";
+            $.ajax({
+                url:url_2+$("#key").val(),
+                type:'get',
+                cache:false,
+                dataType:'json'
+            }).done(function(data) {
+            //書籍名、著者、出版社、サムネイル[リンク]
+            console.log(data);             //オブジェクトの中を確認
+            const len = data.items.length; //データの数を取得
+            let isbn =[] ;
+            let html;
+            for(let i=0; i<len; i++){
+                console.log(typeof data.items[i].volumeInfo.publisher);
+                if(typeof data.items[i].volumeInfo.publisher=="undefined"){
+                    data.items[i].volumeInfo.publisher="出版社（不明）";
+                }
+                html += `
+                    <tr>
+                        <td>${data.items[i].volumeInfo.title}</td>
+                        <td>${data.items[i].volumeInfo.authors}</td>
+                        <td>${data.items[i].volumeInfo.publisher}</td>
+                        <td>
+                            <a target="_blank" href="${data.items[i].volumeInfo.infoLink}">
+                                <img src="${data.items[i].volumeInfo.imageLinks.thumbnail}">
+                            </a>
+                        </td>
+                    </tr>
+                `;
+                isbn.push(data.items[i].volumeInfo.industryIdentifiers[0]);
+            }
+            //table要素のid="list"に追加
+            $("#list").empty().hide().append(html).fadeIn(1000);
+            console.log(isbn);
+        });
+    });
+
+    const url_1 = 'https://api.calil.jp/check?callback=no&appkey='+key+'&isbn=4834000826&systemid=Saitama_Pref&format=json';
+    // console.log(url_1);
+    // let t = data.items[0].volumeInfo.industryIdentifiers[0];
+    // console.log(t);
+        $.ajax({
+            url:url_1,
+            type:'get',
+            cache:false,
+            dataType:'json'
+        }).done(function(data){
+            console.log(data);
+        });
+
+
+
+</script>    
+
+</body>
+</html>
